@@ -66,7 +66,27 @@ export const isDOMElement = (value: any): value is DOMElement => {
 
 export const isDOMNode = (value: any): value is DOMNode => {
   const window = getDefaultView(value)
-  return !!window && value instanceof window.Node
+
+  // First, try the standard approach
+  if (window && value instanceof window.Node) {
+    return true
+  }
+
+  // Fallback for Android iframes where instanceof window.Node fails on first keystroke
+  // even when window is available. This happens due to timing issues with the iframe's
+  // window context and prototype chain establishment.
+  if (window && value && typeof value === 'object' && 'nodeType' in value) {
+    // Check for basic Node properties when instanceof fails
+    return (
+      typeof value.nodeType === 'number' &&
+      typeof value.nodeName === 'string' &&
+      value.nodeType >= 1 &&
+      value.nodeType <= 12 && // Valid Node types
+      value.ownerDocument === window.document
+    )
+  }
+
+  return false
 }
 
 /**
